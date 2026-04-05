@@ -1,10 +1,6 @@
 using UnityEngine;
-using KSP.UI.Screens;
-using System.Reflection;
 
-
-
-namespace YourModName
+namespace ModuleSlider
 {
     public class ModuleSlider : PartModule
     {
@@ -32,6 +28,10 @@ namespace YourModName
             UI_FloatRange sliderControl = Fields["sliderValue"].uiControlEditor as UI_FloatRange;
             if (sliderControl != null)
             {
+                // CRITICAL: Unsubscribe first to prevent duplicate subscriptions
+                // (OnStart can fire multiple times on re-attach, symmetry, etc.)
+                sliderControl.onFieldChanged -= OnSliderValueChanged;
+                
                 sliderControl.minValue = minValue;
                 sliderControl.maxValue = maxValue;
                 sliderControl.stepIncrement = stepSize;
@@ -86,7 +86,7 @@ namespace YourModName
     
 			try 
 			{
-				float multiplier = float.Parse(multiplierStr);
+				float multiplier = float.Parse(multiplierStr, System.Globalization.CultureInfo.InvariantCulture);
 				var modules = part.FindModulesImplementing<PartModule>();
 				foreach (var module in modules)
 				{
@@ -108,6 +108,9 @@ namespace YourModName
 
         public void OnDestroy()
         {
+            // Defensive: check if Fields exists (PartModule might be destroyed before OnStart ran)
+            if (Fields == null) return;
+            
             UI_FloatRange sliderControl = Fields["sliderValue"].uiControlEditor as UI_FloatRange;
             if (sliderControl != null)
             {
